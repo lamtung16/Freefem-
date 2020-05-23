@@ -1,0 +1,35 @@
+// Mesh
+mesh Th = square(30, 30);
+
+// P2 conforming triangular Finite Element Method
+fespace Uh(Th, P2);
+Uh u1, u2;
+Uh v1, v2;
+Uh f1, f2;
+
+// P1 conforming triangular Finite Element Method
+fespace Ph(Th, P1);
+Ph p, q;
+
+// Problem
+real epsilon = 1e-10;
+real muy = 1;
+f1 = 0;
+f2 = 0;
+solve stokes([u1, u2, p], [v1, v2, q])
+= int2d(Th)(muy*(dx(u1)*dx(v1) + dy(u1)*dy(v1) + dx(u2)*dx(v2) + dy(u2)*dy(v2)))        // muy*grad(u)*grad(v)
+- int2d(Th)(p*(dx(v1) + dy(v2)))                                                        // p*div(v)
+- int2d(Th)(f1*v1 + f2*v2)                                                              // f*v
++ int2d(Th)(q*(dx(u1) + dy(u2)) - epsilon*p*q)                                          // q*div(u)
++ on(1, 2, 4, u1=0, u2=0)
++ on(3, u1=1, u2=0);
+
+// streamline
+Uh psi, phi;
+solve streamlines (psi, phi)
+= int2d(Th)(dx(psi) * dx(phi) + dy(psi) * dy(phi))
++ int2d(Th)(-phi * (dy(u1) - dx(u2)))
++ on(1, 2, 3, 4, psi=0);
+
+plot(psi);
+//plot([u1, u2], p);

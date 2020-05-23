@@ -1,0 +1,43 @@
+// Parameters
+real E = 21e5;
+real nu = 0.3;
+real mu = E/(2*(1 + nu));
+real lambda = E*nu/((1 + nu)*(1 - 2*nu));
+
+// boundaries of mesh
+border b1(t=0,20){x=t; y=-1;}
+border b2(t=-1,1){x=20; y=t;}
+border b3(t=20,0){y=1; x=t;}
+border b4(t=1,-1){x=0; y=t;}
+border C(t=0,2*pi){x = 10 + 0.5*cos(t); y = 0 + 0.5*sin(t);}
+
+// build mesh
+real n = 10;
+mesh Th = buildmesh(b1(10*n) + b2(n) + b3(10*n) + b4(n) + C(-2*n));
+
+// P2 conforming triangular Finite Element Method
+fespace Vh(Th, P2);
+Vh u1, u2;
+Vh v1, v2;
+Vh f1, f2, g1, g2;
+
+// Define Epsilon(u) and Divergence(u)
+real sqrt2 = sqrt(2);
+macro epsilon(u, v) [dx(u), dy(v), (dy(u)+dx(v))/sqrt2] // EOM
+macro div(u,v) (dx(u) + dy(v)) // EOM
+
+// solve
+f1 = 100000;
+f2 = 0;
+g1 = 0;
+g2 = -9.81;
+solve lame([u1, u2], [v1, v2])
+  = int2d(Th)(lambda*div(u1,u2)*div(v1,v2) + 2.*mu*(epsilon(u1,u2)'*epsilon(v1,v2)))
+  - int1d(Th,b2)(f1*v1 + f2*v2)
+  - int2d(Th)(g1*v1 + g2*v2)
+  + on(b4, u1=0, u2=0);
+
+// Plot transformed mesh
+real coef = 2;
+mesh th1 = movemesh(Th, [x+u1*coef, y+u2*coef]);
+plot(th1);

@@ -1,0 +1,64 @@
+load "medit"
+// Parameters
+real nu = 0.001;
+real dt = 0.01;
+real T = 100;
+real epsr = 1e-8;
+
+// Mesh
+border c1(t=3,1){x = 0; y = t;}
+border c2(t=0,5){x = t; y = 1;}
+border c3(t=1,0){x = 5; y = t;}
+border c4(t=5,20){x = t; y = 0;}
+border c5(t=0,3){x = 20; y = t;}
+border c6(t=20,0){x = t; y = 3;}
+real n = 5;
+mesh Th = buildmesh(c1(2*n) + c2(5*n) + c3(n) + c4(15*n) + c5(3*n) + c6(20*n));
+
+// Fespace
+fespace Xh(Th, P2);
+Xh u1, v1;
+Xh u2, v2;
+Xh up1, up2;
+Xh psi, phi;
+fespace Mh(Th, P1);
+Mh p, q;
+
+// Problem stream-lines (with solve)
+problem streamlines(psi, phi)
+	= int2d(Th)(dx(psi)*dx(phi) + dy(psi)*dy(phi))
+	+ int2d(Th)(- phi*(dy(u1) - dx(u2)))
+	+ on(c1, c2, c3, c4, c5, c6, psi=0);
+
+// Problem Navier-Stokes
+problem NS([u1, u2, p], [v1, v2, q])
+	= int2d(Th)
+	(
+		(u1*v1 + u2*v2)/dt
+		+ nu * (dx(u1)*dx(v1) + dy(u1)*dy(v1) + dx(u2)*dx(v2) + dy(u2)*dy(v2))
+		- p*(dx(v1) + dy(v2))
+	)
+	- int2d(Th)
+	(
+		(convect([up1, up2], -dt, up1)*v1 + convect([up1, up2], -dt, up2)*v2)/dt
+	)
+	+ int2d(Th)(q*(dx(u1) + dy(u2)))
+	- int2d(Th)(p*q*epsr)
+	+ on(1, u1=0.6667, u2=0)
+	+ on(2, 3, 4, 6, u1=0, u2=0)
+	;
+
+for (int i = 0; i*dt <= T; i++) 
+{
+	// Update
+	up1 = u1;
+	up2 = u2;
+
+	// Solve
+	NS;
+	streamlines;
+
+	// savesol
+//	savesol("Th." + i + ".sol", Th, [u1,u2]);
+//	savemesh(Th, "Th." + i + ".mesh");
+}

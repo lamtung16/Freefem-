@@ -1,0 +1,67 @@
+load "ff-Ipopt";
+int n = 50;
+mesh Th = square(n,n);
+real gamma = 0.5;
+fespace Vh(Th, P1);
+Vh ud = (1 + gamma*4*pi^4)*sin(pi*x)*sin(pi*y);
+
+// Solve u(f) from f
+func real[int] SolveState(real[int] f)
+{
+    Vh u, v;
+    Vh g;
+    g[] = f;
+    solve Poisson(u, v, solver = LU) =
+        int2d(Th)(dx(u)*dx(v) + dy(u)*dy(v))
+        - int2d(Th)(g*v)
+        + on(1,2,3,4, u=0);
+    return u[];
+}
+
+// Solve p from u
+func real[int] SolveAdjoint(real[int] u)
+{
+    Vh p, v;
+    Vh uf;
+    uf[] = u;
+    Vh f = uf - ud;
+
+    solve Poisson(p, v, solver=LU) =
+        int2d(Th)(dx(p)*dx(v) + dy(p)*dy(v))
+        - int2d(Th)(f*v)
+        + on(1,2,3,4, p = 0);
+    
+    return p[];
+}
+
+// J(f)
+func real J(real[int] f)
+{
+    Vh ff;
+    ff[] = f;
+    Vh uu;
+    uu[] = SolveState(f);
+
+    real res;
+    res = 0.5*int2d(Th)((uu - ud)^2) + gamma*0.5*int2d(Th)(ff^2);
+
+    return res;
+}
+
+// grad(J)
+func real[int] gradJ(real[int] f)
+{
+    Vh pp, ff;
+    pp[] = SolveAdjoint(SolveState(f));
+    ff[] = f;
+
+    Vh res = pp + gamma*ff;
+    return res[];
+}
+
+// Solve
+Vh f = 0;
+IPOPT(J, gradJ, f[]);
+
+// plot f
+plot(f, dim = 2);

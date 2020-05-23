@@ -1,0 +1,28 @@
+load "medit"
+// boundaries of mesh
+border c(t=0, 2*pi){x=0+4*cos(t); y=0+4*sin(t);}
+
+// build mesh
+mesh Th = buildmesh(c(100));
+
+// Time
+real T = 2;
+real dt = 0.01;
+
+// P1 conforming triangular Finite Element Method
+fespace Vh(Th, P1);
+Vh u1, u2, phi0;
+Vh phi, phiold;
+
+// Solve
+u1 = y;
+u2 = -x;
+phi0 = sqrt((x-0)^2 + (y-2)^2) - 1;
+phiold = phi0;
+for (int i = 0; i*dt <= T; i++)
+{
+    phi = convect([u1,u2],-dt,phiold);
+	phiold = phi;
+//	savesol("Th." + i + ".sol", Th, phi);
+//	savemesh(Th, "Th." + i + ".mesh");
+}

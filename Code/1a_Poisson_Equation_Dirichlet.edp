@@ -1,0 +1,17 @@
+// build mesh
+int n = 20;
+mesh Th = square(n,n);
+
+// P1 conforming triangular Finite Element Method
+fespace Vh(Th, P1);
+Vh u, v;
+Vh f = 2*pi*pi*sin(pi*x)*sin(pi*y);
+
+// Solve
+solve Poisson(u, v) =
+	int2d(Th)(dx(u)*dx(v) + dy(u)*dy(v)) 
+	+ int2d(Th)(f*v)
+	+ on(1,2,3,4, u=0);
+
+// plot solution
+plot(u);

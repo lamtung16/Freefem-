@@ -1,0 +1,38 @@
+load "medit"
+// mesh
+mesh Th = square(20,20);
+
+// time
+real T = 5;
+real dt = 0.01;
+
+// gradient
+macro Grad(u)[dx(u),dy(u)] //
+
+// Vh
+fespace Vh(Th, P1);
+Vh u0, u0t, u1, f;
+Vh u, v, uold1, uold2;
+
+// solve
+u0 = sin(pi*x)*sin(pi*y);
+u0t = 0;
+u1 = u0 + u0t*dt;
+f = 0;
+uold1 = u1;
+uold2 = u0;
+
+for (int i = 0; i*dt <= T; i++)
+{
+	solve Wave(u,v) =
+		int2d(Th)(u*v)
+		- int2d(Th)(2*uold1*v)
+		+ int2d(Th)(uold2*v)
+		- int2d(Th)(dt*dt*f*v)
+		+ int2d(Th)(dt*dt*Grad(uold1)'*Grad(v))
+		+ on(1, 2, 3, 4, u=0);
+	uold2 = uold1;
+	uold1 = u;
+//	savesol("Th." + i + ".sol", Th, u);
+//	savemesh(Th, "Th." + i + ".mesh");
+}
